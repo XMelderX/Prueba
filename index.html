@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ONI - Acceso Clasificado</title>
+
+  <!-- ===================================================
+       ESTILOS TEMA SINIESTRO A PANTALLA COMPLETA
+       + BUGS DE PANTALLA + DISTORSIÓN GLOBAL
+  =================================================== -->
+  <style>
+    /* -------------------------------
+       RESET BÁSICO
+    ------------------------------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #000;    /* Fondo negro */
+      color: #888;               /* Texto gris oscuro */
+      font-family: 'Courier New', monospace;
+      overflow: hidden;          /* Sin scroll hasta quitar overlay */
+    }
+
+    /* --------------------------------
+       TEXTURA DE FONDO GLOBAL (ruido sutil)
+    -------------------------------- */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAYAAACNw7ZZAAAACXBIWXMAAAsTAAALEwEAmpwYAAAG0UlEQVR4nO3deXgU1f7H8eeVYqtaFQosrc0RJShQ6VIBaScwqiKpUGg1SEVsI5E88QMhkTncYmRMYYNlIEJ0UgbC4iA4j6AkVBZB2QrE5PMhqQSyg0SBornFeXfd/fmevaFHU7srtzqv777uues3vnO+fc+2AMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADA1q9dypAADcJQB1CwD3CYB1CwD4CkB1CwDwCgB1CwD4CgB1CwD4CkB1CwDwCgB1CwD3BgD4CgB1CwD4CkB1CwDwCgB1CwD3BgD4CgB1CwD4CkB1CwDwCgB1CwD4CkB1CwDwCgB1CwD3BgD4CgB1CwD4CkB1CwDwCgB1CwD3BgD4CgB1CwD4CkB1CwDwCgB1CwD4CkB1CwDwCgB1CwD3BgD4CgB1CwD4CkB1CwDwCgB1CwD3BgD4CgB1CwD4CkB1CwDwCgB1CwD4CkB1CwDwCgB1CwD4CkB1CwDwCgB1CwD4CkB1CwPeb/AH7+nJRYMwoTAAAAABJRU5ErkJggg==');
+      background-size: cover;
+      opacity: 0.05;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ===================================================
+       BUGS DE PANTALLA (PEQUEÑOS CUADRADOS COLOREADOS)
+       - Cada bug dura 0.3s y mezcla RGB con blend-mode
+    =================================================== */
+    .screen-bug {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      mix-blend-mode: difference;
+      pointer-events: none;
+      z-index: 8;
+      animation: bug-fade 0.3s ease-out forwards;
+    }
+    @keyframes bug-fade {
+      0%   { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* ===================================================
+       DISTORSIÓN GLOBAL (aplicada al .datapad)
+       - Blur + Hue + Skew durante 0.3s
+    =================================================== */
+    @keyframes distort-global {
+      0% {
+        filter: none;
+        transform: none;
+      }
+      50% {
+        filter: blur(1.5px) hue-rotate(25deg);
+        transform: skewX(2deg);
+      }
+      100% {
+        filter: none;
+        transform: none;
+      }
+    }
+    .distort-global {
+      animation: distort-global 0.3s ease-out forwards;
+    }
+
+    /* ===================================================
+       DATAPAD A PANTALLA COMPLETA (SIN CENTRAR)
+    =================================================== */
+    .datapad {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(5, 0, 0, 0.97);
+      box-shadow: inset 0 0 40px rgba(170, 0, 0, 0.8);
+      padding: 30px 40px;
+      overflow-y: auto;
+      z-index: 5;
+    }
+    .datapad::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(90deg, rgba(170,0,0,0.9), rgba(0,0,0,0.0));
+      pointer-events: none;
+    }
+    .datapad::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(90deg, rgba(0,0,0,0.0), rgba(170,0,0,0.9));
+      pointer-events: none;
+    }
+
+    /* ===================================================
+       ENCABEZADO CON TÍTULO SANGRIENTO
+    =================================================== */
+    .datapad header {
+      text-align: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .datapad header h1 {
+      font-size: 2.4rem;
+      color: #FF0000;
+      letter-spacing: 1.5px;
+      text-shadow: 0 0 8px rgba(255,0,0,0.7), 0 0 6px rgba(0,0,0,0.9);
+      animation: pulseRedHeading 2s infinite ease-in-out;
+    }
+    @keyframes pulseRedHeading {
+      0%,100% { text-shadow: 0 0 4px rgba(255,0,0,0.5), 0 0 2px rgba(0,0,0,0.7); }
+      50%     { text-shadow: 0 0 14px rgba(255,0,0,1), 0 0 8px rgba(0,0,0,0.8); }
+    }
+    .datapad header p {
+      font-size: 0.9rem;
+      color: #880000;
+      margin-top: 6px;
+      text-shadow: 0 0 4px rgba(0,0,0,0.7);
+      animation: pulseSub 3s infinite ease-in-out;
+    }
+    @keyframes pulseSub {
+      0%,100% { opacity: 0.8; }
+      50%     { opacity: 1; }
+    }
+
+    /* ===================================================
+       SECCIONES INTERNAS
+    =================================================== */
+    section {
+      background-color: #100000;
+      border: 1px solid #770000;
+      border-radius: 3px;
+      margin: 22px 0;
+      padding: 20px 22px;
+      position: relative;
+    }
+    section h2 {
+      font-size: 1.7rem;
+      color: #DD1111;
+      margin-bottom: 10px;
+      letter-spacing: 0.6px;
+      text-shadow: 0 0 4px rgba(0,0,0,0.7);
+      position: relative;
+    }
+    section h2::before {
+      content: "";
+      position: absolute;
+      left: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 8px;
+      height: 80%;
+      background-color: rgba(255,0,0,0.85);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+    section p, section ul li {
+      line-height: 1.7;
+      margin-bottom: 10px;
+      color: #BB4444;
+      font-size: 1rem;
+      text-shadow: 0 0 2px rgba(0,0,0,0.6);
+    }
+    section ul {
+      padding-left: 28px;
+    }
+    section ul li {
+      margin-bottom: 8px;
+      position: relative;
+    }
+    section ul li::before {
+      content: "▸";
+      color: #CC0000;
+      position: absolute;
+      left: -20px;
+    }
+
+    a {
+      color: #FF5555;
+      text-decoration: none;
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+    a:hover {
+      color: #FF0000;
+      text-shadow: 0 0 6px rgba(255,0,0,0.8);
+      text-decoration: underline;
+    }
+
+    /* ===================================================
+       NAVEGACIÓN ÉPICA
+    =================================================== */
+    .datapad nav {
+      margin: 30px 0;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      position: relative;
+    }
+    .datapad nav ul {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+    }
+    .datapad nav ul li {
+      background-color: #220000;
+      border: 1px solid #770000;
+      border-radius: 4px;
+      transition: background-color 0.3s, box-shadow 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .datapad nav ul li::after {
+      content: "";
+      position: absolute;
+      top: -100%;
+      left: 0;
+      width: 100%;
+      height: 200%;
+      background: rgba(255,0,0,0.2);
+      transform: rotate(45deg);
+      transition: top 0.5s;
+      pointer-events: none;
+    }
+    .datapad nav ul li:hover {
+      background-color: #330000;
+      box-shadow: 0 0 10px rgba(255,0,0,0.7);
+    }
+    .datapad nav ul li:hover::after {
+      top: 0;
+    }
+    .datapad nav ul li a {
+      display: block;
+      padding: 12px 20px;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    /* ===================================================
+       TEXTO DE SLOGANS
+    =================================================== */
+    .slogan {
+      font-size: 0.9rem;
+      color: #660000;
+      margin-left: 6px;
+      font-style: italic;
+      text-shadow: 0 0 3px rgba(0,0,0,0.5);
+      position: relative;
+      animation: pulseSlogan 4s infinite ease-in-out;
+    }
+    @keyframes pulseSlogan {
+      0%,100% { opacity: 0.7; }
+      50%     { opacity: 1; }
+    }
+
+    /* ===================================================
+       PIE DE PÁGINA
+    =================================================== */
+    .datapad footer {
+      text-align: center;
+      margin-top: 25px;
+      font-size: 0.8rem;
+      color: #440000;
+      border-top: 1px solid #770000;
+      padding-top: 12px;
+      opacity: 0.5;
+      letter-spacing: 0.5px;
+    }
+
+    /* ===================================================
+       OVERLAY DE CONTRASEÑA
+    =================================================== */
+    #password-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(5, 0, 0, 0.99);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      flex-direction: column;
+      text-align: center;
+    }
+    #password-overlay h2 {
+      color: #CC0000;
+      margin-bottom: 18px;
+      font-size: 2rem;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1.2px;
+      text-shadow: 0 0 8px rgba(0,0,0,0.7);
+      animation: pulseOverlay 2s infinite ease-in-out;
+    }
+    @keyframes pulseOverlay {
+      0%,100% { text-shadow: 0 0 4px rgba(255,0,0,0.5), 0 0 2px rgba(0,0,0,0.7); }
+      50%     { text-shadow: 0 0 12px rgba(255,0,0,0.9), 0 0 6px rgba(0,0,0,0.8); }
+    }
+    #password-overlay input {
+      background-color: #220000;
+      border: 1px solid #770000;
+      color: #FF5555;
+      padding: 14px;
+      font-size: 1rem;
+      border-radius: 4px;
+      width: 280px;
+      text-align: center;
+      margin-bottom: 16px;
+      font-family: 'Courier New', monospace;
+    }
+    #password-overlay button {
+      background-color: #770000;
+      color: #FF7777;
+      border: none;
+      padding: 14px 26px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s, box-shadow 0.3s;
+      font-family: 'Courier New', monospace;
+    }
+    #password-overlay button:hover {
+      background-color: #990000;
+      box-shadow: 0 0 10px rgba(255,0,0,0.8);
+    }
+    .shake {
+      animation: shakeAnim 0.3s;
+    }
+    @keyframes shakeAnim {
+      0%   { transform: translateX(0); }
+      25%  { transform: translateX(-8px); }
+      50%  { transform: translateX(8px); }
+      75%  { transform: translateX(-8px); }
+      100% { transform: translateX(0); }
+    }
+
+    /* ===================================================
+       SCROLL PERSONALIZADO “GOTAS DE SANGRE”
+    =================================================== */
+    .datapad::-webkit-scrollbar {
+      width: 10px;
+    }
+    .datapad::-webkit-scrollbar-track {
+      background: #220000;
+      border-radius: 4px;
+    }
+    .datapad::-webkit-scrollbar-thumb {
+      background-color: #770000;
+      border-radius: 4px;
+      border: 1px solid #550000;
+    }
+  </style>
+</head>
+<body>
+  <!-- OVERLAY DE CONTRASEÑA QUE BLOQUEA ACCESO -->
+  <div id="password-overlay">
+    <h2>ACCESO RESTRINGIDO - ONI</h2>
+    <input type="password" id="passInput" placeholder="Introduce contraseña" />
+    <button id="submitPass">ENTRAR</button>
+  </div>
+
+  <!-- LOS “BUGS DE PANTALLA” SE CREAN dinámicamente por JS -->
+
+  <!-- PANEL DATAPAD A PANTALLA COMPLETA -->
+  <div class="datapad" style="display: none;" id="datapadContent">
+    <!-- ENCABEZADO -->
+    <header>
+      <h1>ONI - Espacios Sombríos</h1>
+      <p>Información Altamente Clasificada</p>
+    </header>
+
+    <!-- SECCIÓN BLACK OPS -->
+    <section id="blackops">
+      <h2><a href="blackops.html">Black OPS</a></h2>
+      <div class="slogan">Desde las Sombras, Control Absoluto.</div>
+      <p><strong>Funciones al Público:</strong></p>
+      <ul>
+        <li>Unidad de protección de VIPs y personalidades de alto nivel.</li>
+        <li>Operaciones de seguridad encubierta en eventos críticos.</li>
+      </ul>
+      <p><strong>Funciones Internas (Alta Secreción):</strong></p>
+      <ul>
+        <li>Misiones encubiertas: asesinatos selectivos y ejecuciones quirúrgicas.</li>
+        <li>Torturas avanzadas para obtención de inteligencia sensible.</li>
+        <li>Falsas banderas: generación de pruebas incriminatorias.</li>
+        <li>Eliminación de evidencias: testigos, registros y, si es necesario, colonias enteras.</li>
+        <li>Experimentos ilegales: creación de Spartans clandestinos, IAs renegadas y armas biológicas.</li>
+      </ul>
+    </section>
+
+    <!-- SECCIÓN AGENTE SOMBRA -->
+    <section id="agentesombra">
+      <h2><a href="agentesombra.html">Agente Sombra</a></h2>
+      <div class="slogan">Las Verdades Silenciosas Forjan el Poder.</div>
+      <p><strong>Funciones al Público:</strong></p>
+      <ul>
+        <li>Negociaciones confidenciales con facciones aliadas y neutrales.</li>
+        <li>Representación discreta en foros diplomáticos de alto nivel.</li>
+      </ul>
+      <p><strong>Funciones Internas (Alta Secreción):</strong></p>
+      <ul>
+        <li>Extracción encubierta de información para Black OPS.</li>
+        <li>Creación y diseminación de información falsa para desviar sospechas.</li>
+        <li>Interrogatorios “amistosos” para arrancar secretos sin levantar alarmas.</li>
+        <li>Preparación del terreno para operaciones letales de Black OPS.</li>
+      </ul>
+    </section>
+
+    <!-- ENLACES EXTERNOS A SECCIONES MOVIDAS -->
+    <nav>
+      <ul>
+        <li><a href="protocolos.html">Protocolos</a></li>
+        <li><a href="normativa.html">Normativa</a></li>
+        <li><a href="informes.html">Informes</a></li>
+      </ul>
+    </nav>
+
+    <!-- PIE DE PÁGINA -->
+    <footer>
+      &copy; 2525 ONI - Difusión Restringida. Todo acceso será registrado.
+    </footer>
+  </div>
+
+  <!-- AUDIO PARA EL “GLITCH FUERTE” -->
+  <audio id="glitch-audio" preload="auto">
+    <source src="glitch.wav" type="audio/wav">
+  </audio>
+
+  <!-- ===================================================
+       SCRIPTS PARA LÓGICA, SONIDOS, BUGS DE PANTALLA
+       y DISTORSIÓN GLOBAL
+  =================================================== -->
+  <script>
+    // ————— Elementos DOM —————
+    const PASSWORD    = "ONI";
+    const overlay     = document.getElementById("password-overlay");
+    const datapad     = document.getElementById("datapadContent");
+    const input       = document.getElementById("passInput");
+    const button      = document.getElementById("submitPass");
+    const glitchAudio = document.getElementById("glitch-audio");
+
+    // ————— Validación de contraseña —————
+    function checkPassword() {
+      if (input.value === PASSWORD) {
+        overlay.style.display = "none";
+        datapad.style.display = "block";
+        document.body.style.overflow = "auto";
+        startAmbientNoise();
+        startRandomBugsLoop();
+        startGlobalDistortionLoop();
+      } else {
+        overlay.classList.add("shake");
+        setTimeout(() => overlay.classList.remove("shake"), 300);
+        input.value = "";
+      }
+    }
+    button.addEventListener("click", checkPassword);
+    input.addEventListener("keypress", function(e) {
+      if (e.key === "Enter") checkPassword();
+    });
+
+    // ————— Sonido del “glitch fuerte” cada 8s (pico 7.2–7.6s) —————
+    setInterval(() => {
+      const now = performance.now() % 8000; // ciclo 0–8000 ms
+      if (now > 7200 && now < 7600) {
+        glitchAudio.currentTime = 0;
+        glitchAudio.play();
+      }
+    }, 600);
+
+    // ————— Ruido blanco de fondo (Web Audio API) —————
+    let audioCtx, noiseSource, gainNode;
+    function startAmbientNoise() {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const bufferSize = 2 * audioCtx.sampleRate; // 2 s de buffer
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+      noiseSource = audioCtx.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+      noiseSource.loop = true;
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = 0.06; // volumen muy bajo
+      noiseSource.connect(gainNode).connect(audioCtx.destination);
+      noiseSource.start(0);
+    }
+
+    // ————— BUGS DE PANTALLA (PEQUEÑOS CUADRADOS) —————
+    function createScreenBug() {
+      const bug = document.createElement("div");
+      bug.classList.add("screen-bug");
+
+      // Color aleatorio entre tonos fuertes de RGB
+      const r = Math.floor(100 + Math.random() * 155);
+      const g = Math.floor(100 + Math.random() * 155);
+      const b = Math.floor(100 + Math.random() * 155);
+      bug.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
+
+      // Posición aleatoria dentro del viewport
+      const x = Math.random() * window.innerWidth;
+      const y = Math.random() * window.innerHeight;
+      bug.style.left = `${x}px`;
+      bug.style.top  = `${y}px`;
+
+      document.body.appendChild(bug);
+
+      // Eliminarlo tras 300 ms
+      setTimeout(() => {
+        bug.remove();
+      }, 300);
+    }
+
+    function startRandomBugsLoop() {
+      function loop() {
+        const delay = Math.random() * 1000 + 1000; // 1–2 s
+        setTimeout(() => {
+          // Crear entre 3 y 6 bugs simultáneos
+          const count = 3 + Math.floor(Math.random() * 4);
+          for (let i = 0; i < count; i++) {
+            createScreenBug();
+          }
+          loop();
+        }, delay);
+      }
+      loop();
+    }
+
+    // ————— DISTORSIÓN GLOBAL PERIÓDICA —————
+    function applyGlobalDistortion() {
+      datapad.classList.add("distort-global");
+      // Quitar la clase tras 300 ms
+      setTimeout(() => {
+        datapad.classList.remove("distort-global");
+      }, 300);
+    }
+
+    function startGlobalDistortionLoop() {
+      function loop() {
+        const delay = Math.random() * 5000 + 4000; // 4–9 s
+        setTimeout(() => {
+          applyGlobalDistortion();
+          loop();
+        }, delay);
+      }
+      loop();
+    }
+  </script>
+</body>
+</html>
